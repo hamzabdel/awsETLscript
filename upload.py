@@ -7,7 +7,7 @@ import boto3
 
 logging.basicConfig(level=logging.INFO)
 
-s3_client = boto3.client(
+s3_client = boto3.client( #grabs info from config.py
     service_name='s3',
     aws_access_key_id = AWS_ACCESS_KEY,
     aws_secret_access_key = AWS_SECRET_KEY,
