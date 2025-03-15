@@ -1,8 +1,28 @@
 import boto3
 import time
+import boto3.s3
 from botocore.exceptions import ClientError
-from config import AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_REGION
 import logging
+from upload import upload_to_s3
+from config import (
+    AWS_ACCESS_KEY,
+    AWS_SECRET_KEY,
+    AWS_REGION,
+    REDSHIFT_HOST,
+    REDSHIFT_PORT,
+    REDSHIFT_DATABASE,
+    REDSHIFT_USERNAME,
+    REDSHIFT_PASSWORD
+)
+
+class DataWarehouseETL:
+    def __init__(self):
+        self.s3_client = boto3.client(
+            's3',
+            aws_access_key_id = AWS_ACCESS_KEY,
+            aws_secret_key_id = AWS_SECRET_KEY,
+            aws_region = AWS_REGION
+        )
 
 logging.basicConfig(level=logging.INFO)
 
