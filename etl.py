@@ -8,6 +8,8 @@ from config import (
     AWS_ACCESS_KEY,
     AWS_SECRET_KEY,
     AWS_REGION,
+    GLUE_CRAWLER_NAME,
+    GLUE_ETL_JOB_NAME,
     REDSHIFT_HOST,
     REDSHIFT_PORT,
     REDSHIFT_DATABASE,
@@ -21,60 +23,101 @@ class DataWarehouseETL:
             's3',
             aws_access_key_id = AWS_ACCESS_KEY,
             aws_secret_key_id = AWS_SECRET_KEY,
-            aws_region = AWS_REGION
+            region_name = AWS_REGION
+        )
+        self.redshift_client = boto3.client(
+            'redshift',
+            aws_access_key_id = AWS_ACCESS_KEY,
+            aws_secret_key_id = AWS_SECRET_KEY,
+            region_name = AWS_REGION
+        )
+        self.glue_client = boto3.client(
+            'glue',
+            aws_access_key_id = AWS_ACCESS_KEY,
+            aws_secret_key_id = AWS_SECRET_KEY,
+            region_name = AWS_REGION
         )
 
-logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.INFO,
+                            format='%(asctime)s - %(levelname)s - %(message)s')
+        self.logger = logging.getLogger(__name__)
+    
+    def run_crawler(self, crawler_name):
+        try:
+            self.logger.info(f"Starting crawler: {crawler_name}")
+            
+            self.glue_client.start_crawler(Name=crawler_name)
 
-glue_client = boto3.client('glue',
-    aws_access_key_id = AWS_ACCESS_KEY,
-    aws_secret_access_key = AWS_SECRET_KEY,
-    region_name = AWS_REGION
-)
+            while True:
+                crawler_state = self.glue_client.get_crawler(Name=crawler_name)['Crawler']['State']
 
-def run_etl_pipeline():
-    logging.info("starting etl")
-
-    try:
-        logging.info("Starting crawler...")
-        glue_client.start_crawler(Name='s3-etl-crawler')
-
-        while True:
-            crawler_state = glue_client.get_crawler(Name='s3-etl-crawler')['Crawler']['State']
-            if crawler_state == 'READY':
-                logging.info("Crawler completed!")
-                break
-            time.sleep(30)
+                if crawler_state == 'READY':
+                    self.logger.info(f"Crawler {crawler_name} completed!")
+                elif crawler_state in ['STOPPING', 'STOPPED']:
+                    self.logger.warning(f"Crawler {crawler_name} stopped.")
+                    break
         
-        logging.info("Starting ETL job...")
-        response = glue_client.start_job_run(
-            JobName = 's3_to_aurora_etl'
-        )
+                time.sleep(30) #Checks again after 30 seconds
 
-        job_run_id = response['JobRunId']
-        while True:
-            status = check_job_status('s3_to_aurora_etl', job_run_id)
-            if status in ['SUCCEEDED', 'FAILED', 'STOPPED']:
-                logging.info(f"ETL job finished with status: {status}")
-                break
-            time.sleep(60)
-
-    except ClientError as e:
-        logging.error(f"ETL pipeline failed: {e}")
-        return False
+            return True
+        except ClientError as e:
+            self.logger.error(f"Crawler error: {e}")
+            return False
     
-    return True
+    def run_etl_job(self, job_name):
+        try:
+            self.logger.info(f"Starting ETL job: {job_name}")
 
-def check_job_status(job_name, run_id):
-    try:
-        response = glue_client.get_job_run(
-            JobName = job_name, 
-            RunId = run_id
-        )
-        return response['JobRun']['JobRunState']
-    except ClientError as e:
-        logging.error(f"Error checking job status {e}")
-        return 'FAILED'
+            response = self.glue_client.start_job_run(JobName=job_name)
+            job_run_id = response['JobRunId']
+
+            while True:
+                status = self.check_job_status(job_name, job_run_id)
+
+                if status in ['SUCCEEDED', 'FAILED', 'STOPPED']:
+                    self.logger.info(f"ETL job {job_name} finished with status: {status}")
+                    return status == "SUCCEEDED"
+
+                time.sleep(60) #tries again after 60 seconds
+
+        except ClientError as e:
+            self.logger.error("ETL job error: {e}")
+            return False
     
+    def check_job_status(self, job_name, run_id):
+        try:
+            response = self.glue_client.get_job_run(
+                JobName = job_name,
+                RunId = run_id
+            )
+            return response['JobRun']['JobRunState']
+        except ClientError as e:
+            self.logger.error(f"Error checking job status: {e}")
+            return 'FAILED'
+    
+    def run_data_warehouse_pipeline(self, crawler_name='s3-etl-crawler', etl_job_name='s3_to_aurora_etl'):
+        try:
+            crawler_success = self.run_crawler(crawler_name)
+            if not crawler_success:
+                raise Exception("Crawler failed")
+            
+            etl_success = self.run_etl_job(etl_job_name)
+            if not etl_success:
+                raise Exception("ETL Job Failed")
+            
+            self.logger.info("Data warehouse pipeline completed!")
+        
+        except Exception as e:
+            self.logger.error(f"Data warehouse pipeline failed! {e}")
+            raise
+
 if __name__ == "__main__":
-    run_etl_pipeline()
+    dw_etl = DataWarehouseETL()
+    dw_etl.run_data_warehouse_pipeline()
+    
+
+
+
+
+
+if __name__ == "__main__":
