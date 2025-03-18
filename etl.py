@@ -7,14 +7,7 @@ from upload import upload_to_s3
 from config import (
     AWS_ACCESS_KEY,
     AWS_SECRET_KEY,
-    AWS_REGION,
-    GLUE_CRAWLER_NAME,
-    GLUE_ETL_JOB_NAME,
-    REDSHIFT_HOST,
-    REDSHIFT_PORT,
-    REDSHIFT_DATABASE,
-    REDSHIFT_USERNAME,
-    REDSHIFT_PASSWORD
+    AWS_REGION
 )
 
 class DataWarehouseETL:
@@ -22,19 +15,19 @@ class DataWarehouseETL:
         self.s3_client = boto3.client(
             's3',
             aws_access_key_id = AWS_ACCESS_KEY,
-            aws_secret_key_id = AWS_SECRET_KEY,
+            aws_secret_access_key = AWS_SECRET_KEY,
             region_name = AWS_REGION
         )
         self.redshift_client = boto3.client(
             'redshift',
             aws_access_key_id = AWS_ACCESS_KEY,
-            aws_secret_key_id = AWS_SECRET_KEY,
+            aws_secret_access_key = AWS_SECRET_KEY,
             region_name = AWS_REGION
         )
         self.glue_client = boto3.client(
             'glue',
             aws_access_key_id = AWS_ACCESS_KEY,
-            aws_secret_key_id = AWS_SECRET_KEY,
+            aws_secret_access_key = AWS_SECRET_KEY,
             region_name = AWS_REGION
         )
 
@@ -95,7 +88,7 @@ class DataWarehouseETL:
             self.logger.error(f"Error checking job status: {e}")
             return 'FAILED'
     
-    def run_data_warehouse_pipeline(self, crawler_name='s3-etl-crawler', etl_job_name='s3_to_aurora_etl'):
+    def run_data_warehouse_pipeline(self, crawler_name='s3-etl-crawler', etl_job_name='covidETL'):
         try:
             crawler_success = self.run_crawler(crawler_name)
             if not crawler_success:
@@ -114,10 +107,3 @@ class DataWarehouseETL:
 if __name__ == "__main__":
     dw_etl = DataWarehouseETL()
     dw_etl.run_data_warehouse_pipeline()
-    
-
-
-
-
-
-if __name__ == "__main__":

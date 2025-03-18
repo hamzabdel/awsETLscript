@@ -24,9 +24,9 @@ def upload_to_s3(file_path, bucket_name, s3_key):
         logging.error(f"Upload failed: {e}")
         return False
 
-file_path = 'people-10000.csv' #put your own info here
-bucket_name = 's3etlbucket'
-s3_key = 'raw/people-10000.csv'
+file_path = 'covid_19_clean_complete.csv' #put your own info here
+bucket_name = 'covidbucketwarehouse'
+s3_key = 'raw/covid_19_clean_complete.csv'
 
 upload_to_s3(file_path, bucket_name, s3_key)
 
