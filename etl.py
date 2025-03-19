@@ -103,6 +103,8 @@ class DataWarehouseETL:
         except Exception as e:
             self.logger.error(f"Data warehouse pipeline failed! {e}")
             raise
+    
+    #def redshiftConnect 
 
 if __name__ == "__main__":
     dw_etl = DataWarehouseETL()
