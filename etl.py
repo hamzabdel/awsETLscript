@@ -104,7 +104,8 @@ class DataWarehouseETL:
             self.logger.error(f"Data warehouse pipeline failed! {e}")
             raise
     
-    #def redshiftConnect 
+    #def redshiftConnect
+    #research on how redshift works with athena queries!
 
 if __name__ == "__main__":
     dw_etl = DataWarehouseETL()
