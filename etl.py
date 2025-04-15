@@ -18,7 +18,7 @@ class DataWarehouseETL:
             aws_secret_access_key = AWS_SECRET_KEY,
             region_name = AWS_REGION
         )
-        self.redshift_client = boto3.client(
+        self.redshift_client = boto3.client( # accessibility eventually
             'redshift',
             aws_access_key_id = AWS_ACCESS_KEY,
             aws_secret_access_key = AWS_SECRET_KEY,
@@ -26,6 +26,13 @@ class DataWarehouseETL:
         )
         self.glue_client = boto3.client(
             'glue',
+            aws_access_key_id = AWS_ACCESS_KEY,
+            aws_secret_access_key = AWS_SECRET_KEY,
+            region_name = AWS_REGION
+        )
+
+        self.athena_client = boto3.client(
+            'athena',
             aws_access_key_id = AWS_ACCESS_KEY,
             aws_secret_access_key = AWS_SECRET_KEY,
             region_name = AWS_REGION
@@ -104,7 +111,24 @@ class DataWarehouseETL:
             self.logger.error(f"Data warehouse pipeline failed! {e}")
             raise
     
-    def loadToRedshift(self, bucket_name, file_path, table_name):
+    def loadToAthena(self, bucket_name, file_path, table_name):
+        database_name = "covid_database"
+        s3_path = f"s3://covidbucketwarehouse/{file_path}"
+
+        query = f"""
+        CREATE EXTERNAL TABLE IF NOT EXISTS {database_name}.{table_name} (
+            `Province_State` STRING,
+            `Country_Region` STRING,
+            `Lat` DOUBLE,
+            `Long` DOUBLE,
+            `Date` STRING,
+            `Confirmed` INT,
+            `Deaths` INT,
+            `Recovered` INT,
+            `Active` INT,
+            `WHO_Region` STRING
+        )
+
 
 
 
